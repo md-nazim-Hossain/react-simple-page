@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import useCart from '../../hooks/useCart';
 import { addToDb, getStoredCart } from '../../utilities/fakedb';
 import Cart from '../Cart/Cart';
 import Product from '../Product/Product';
@@ -6,11 +8,21 @@ import './Shop.css';
 
 const Shop = () => {
     const [products,setProducts] = useState([]);
-    const [cart,setCart] = useState([]);
+    const [cart,setCart] = useCart(products);
     const [displayProducts,setDisplayProducts] = useState([]);
 
     const handleEvent = (product) =>{
-        const newCart = [...cart,product];
+        const exists = cart.find(pd => pd.key === product.key);
+        let newCart = [];
+        if(exists){
+            const remain = cart.filter(pd => pd.key !== product.key);
+            exists.quantity += 1;
+            newCart = [...remain,product];
+        }
+        else{
+            product.quantity = 1;
+            newCart = [...cart,product];
+        }
         setCart(newCart);
         addToDb(product.key);
     }
@@ -23,24 +35,6 @@ const Shop = () => {
              setDisplayProducts(data)
             });
     },[]);
-
-    useEffect(() =>{
-        const saveCart = getStoredCart();
-        if(products.length){
-            const findItems = [];
-            for(const key in saveCart){
-                const getItem = products.find(product => product.key === key);
-                
-                if(getItem){
-                    const quantity = saveCart[key];
-                    getItem.quantity = quantity;
-                    findItems.push(getItem);
-                }
-            }
-            setCart(findItems);
-        }
-       
-    },[products]);
 
     const handleDisplay = event =>{
         const searchText = event.target.value;
@@ -68,7 +62,11 @@ const Shop = () => {
                 }
                 </div>
                 <div className='cart'>
-                    <Cart cart={cart}></Cart>
+                    <Cart cart={cart}>
+                        <Link to='/review'>
+                            <button className='btn-regular'>Review your order</button>
+                        </Link>
+                    </Cart>
                 </div>
             </div>
         </>
